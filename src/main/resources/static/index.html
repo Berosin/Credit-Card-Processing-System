@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NexaCard — Credit System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --c1: #0f0c29;
+      --accent: #e040fb;
+      --accent2: #00e5ff;
+      --accent3: #ff6f61;
+      --glass: rgba(255,255,255,0.07);
+      --glass-border: rgba(255,255,255,0.15);
+      --text: #f0eeff;
+      --muted: rgba(240,238,255,0.5);
+      --radius: 20px;
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-body); background: var(--c1); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 20%, rgba(224,64,251,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(0,229,255,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(48,43,99,0.8) 0%, transparent 80%);
+      z-index: 0;
+    }
+    .orb { position:fixed; border-radius:50%; filter:blur(80px); opacity:0.25; animation:floatOrb 14s ease-in-out infinite alternate; z-index:0; pointer-events:none; }
+    .orb1 { width:400px; height:400px; background:var(--accent); top:-100px; left:-100px; }
+    .orb2 { width:300px; height:300px; background:var(--accent2); bottom:-80px; right:-80px; animation-delay:-4s; }
+    .orb3 { width:250px; height:250px; background:var(--accent3); top:50%; left:60%; animation-delay:-8s; }
+    @keyframes floatOrb { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(40px,40px) scale(1.15)} }
+
+    #app { position:relative; z-index:1; min-height:100vh; }
+    .page { display:none; min-height:100vh; align-items:center; justify-content:center; flex-direction:column; padding:30px 20px; animation:fadeUp .5s ease both; }
+    .page.active { display:flex; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+
+    .glass-card {
+      background:var(--glass); border:1px solid var(--glass-border);
+      backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+      border-radius:var(--radius); padding:40px 36px; width:100%; max-width:440px;
+      box-shadow:0 8px 60px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+    .brand { font-family:var(--font-head); font-size:28px; font-weight:800; letter-spacing:-0.5px; margin-bottom:8px; }
+    .brand span { color:var(--accent); }
+    .tagline { color:var(--muted); font-size:14px; margin-bottom:32px; }
+    .page-title { font-size:22px; font-weight:700; font-family:var(--font-head); margin-bottom:6px; }
+    .page-sub { color:var(--muted); font-size:14px; margin-bottom:28px; }
+
+    .field { margin-bottom:16px; }
+    label { display:block; font-size:12px; font-weight:500; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; margin-bottom:7px; }
+    input, select {
+      width:100%; padding:13px 16px; background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.12); border-radius:12px; color:var(--text);
+      font-family:var(--font-body); font-size:15px; outline:none; appearance:none;
+      transition:border-color .25s,box-shadow .25s;
+    }
+    input::placeholder { color:rgba(255,255,255,0.25); }
+    input:focus, select:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(224,64,251,0.15); }
+    select option { background:#1a1740; color:var(--text); }
+
+    .btn {
+      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      padding:14px 26px; border:none; border-radius:12px;
+      font-family:var(--font-head); font-size:15px; font-weight:700;
+      cursor:pointer; width:100%; transition:all .25s; position:relative; overflow:hidden;
+    }
+    .btn::after { content:''; position:absolute; inset:0; background:white; opacity:0; transition:opacity .2s; }
+    .btn:hover::after { opacity:0.06; }
+    .btn:active { transform:scale(0.98); }
+    .btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .btn-primary { background:linear-gradient(135deg,var(--accent),#7c4dff); color:#fff; box-shadow:0 4px 24px rgba(224,64,251,0.35); }
+    .btn-cyan { background:linear-gradient(135deg,var(--accent2),#0072ff); color:#000; box-shadow:0 4px 24px rgba(0,229,255,0.3); }
+    .btn-coral { background:linear-gradient(135deg,var(--accent3),#ff9800); color:#fff; box-shadow:0 4px 24px rgba(255,111,97,0.3); }
+    .btn-ghost { background:rgba(255,255,255,0.06); border:1px solid var(--glass-border); color:var(--text); width:auto; }
+    .btn-sm { padding:9px 18px; font-size:13px; width:auto; }
+
+    .divider { display:flex; align-items:center; gap:12px; margin:20px 0; color:var(--muted); font-size:12px; }
+    .divider::before,.divider::after { content:''; flex:1; height:1px; background:var(--glass-border); }
+    .link { color:var(--accent2); cursor:pointer; text-decoration:underline; font-size:14px; }
+
+    .top-nav {
+      position:fixed; top:0; left:0; right:0; z-index:100;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 32px; background:rgba(15,12,41,0.75);
+      backdrop-filter:blur(20px); border-bottom:1px solid var(--glass-border);
+    }
+    .nav-brand { font-family:var(--font-head); font-weight:800; font-size:20px; }
+    .nav-brand span { color:var(--accent); }
+    .nav-links { display:flex; gap:6px; }
+    .nav-link { padding:8px 18px; border-radius:10px; font-family:var(--font-head); font-size:14px; font-weight:600; cursor:pointer; transition:all .2s; color:var(--muted); background:transparent; border:1px solid transparent; }
+    .nav-link:hover { color:var(--text); background:var(--glass); }
+    .nav-link.active { color:var(--text); background:var(--glass); border-color:var(--glass-border); }
+    .nav-right { display:flex; align-items:center; gap:12px; }
+    .nav-user { font-size:14px; color:var(--muted); }
+    .nav-avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,var(--accent),#7c4dff); display:flex; align-items:center; justify-content:center; font-family:var(--font-head); font-weight:800; font-size:14px; }
+
+    .dash-layout { padding-top:90px; width:100%; max-width:860px; margin:0 auto; padding-left:20px; padding-right:20px; padding-bottom:40px; }
+    .dash-header { margin-bottom:28px; }
+    .dash-title { font-size:30px; font-weight:800; font-family:var(--font-head); }
+    .dash-sub { color:var(--muted); font-size:15px; margin-top:4px; }
+
+    .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:24px; }
+    .stat-card { background:var(--glass); border:1px solid var(--glass-border); border-radius:16px; padding:20px 18px; backdrop-filter:blur(16px); }
+    .stat-label { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:8px; }
+    .stat-value { font-family:var(--font-head); font-size:22px; font-weight:800; }
+    .stat-value.green { color:#4cff91; }
+    .stat-value.red { color:var(--accent3); }
+    .stat-value.cyan { color:var(--accent2); }
+
+    .steps { display:flex; gap:0; margin-bottom:30px; }
+    .step-item { flex:1; text-align:center; position:relative; }
+    .step-item+.step-item::before { content:''; position:absolute; left:0; top:18px; width:100%; height:2px; background:rgba(255,255,255,0.1); transform:translateX(-50%); }
+    .step-item.done+.step-item::before { background:var(--accent); }
+    .step-dot { width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.15); display:inline-flex; align-items:center; justify-content:center; font-family:var(--font-head); font-size:14px; font-weight:700; transition:all .3s; position:relative; z-index:1; }
+    .step-item.active .step-dot { background:var(--accent); border-color:var(--accent); box-shadow:0 0 16px rgba(224,64,251,0.5); }
+    .step-item.done .step-dot { background:var(--accent2); border-color:var(--accent2); }
+    .step-label { font-size:11px; color:var(--muted); margin-top:6px; }
+
+    /* Card flip */
+    .card-grid { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; margin-bottom:20px; }
+    .card-flip-wrapper { width:340px; height:200px; margin:0; perspective:1000px; cursor:pointer; }
+    .card-flip-inner { position:relative; width:100%; height:100%; transition:transform 0.65s cubic-bezier(0.4,0.2,0.2,1); transform-style:preserve-3d; }
+    .card-flip-wrapper.flipped .card-flip-inner { transform:rotateY(180deg); }
+    .ccard-face { position:absolute; inset:0; border-radius:20px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.5); backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+    .ccard-front { padding:24px; display:flex; flex-direction:column; justify-content:space-between; }
+    .ccard-bg { position:absolute; inset:0; z-index:0; }
+    .ccard-bg.style1 { background:linear-gradient(135deg,#667eea 0%,#764ba2 50%,#e040fb 100%); }
+    .ccard-bg.style2 { background:linear-gradient(135deg,#0f3443 0%,#34e89e 100%); }
+    .ccard-bg.style3 { background:linear-gradient(135deg,#f7971e 0%,#ffd200 50%,#ff6f61 100%); }
+    .ccard-shine { position:absolute; top:-60%; left:-30%; width:80%; height:200%; background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,0.15) 50%,transparent 70%); transform:rotate(20deg); z-index:1; }
+    .ccard-content { position:relative; z-index:2; height:100%; display:flex; flex-direction:column; justify-content:space-between; }
+    .ccard-chip { width:36px; height:28px; border-radius:6px; background:linear-gradient(135deg,#ffd700,#ffa000); }
+    .ccard-number { font-family:'Courier New',monospace; font-size:18px; letter-spacing:3px; color:rgba(255,255,255,0.9); }
+    .ccard-bottom { display:flex; justify-content:space-between; align-items:flex-end; }
+    .ccard-label { font-size:9px; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,0.6); }
+    .ccard-value { font-family:var(--font-head); font-size:14px; font-weight:600; color:rgba(255,255,255,0.95); }
+    .ccard-logo { font-family:var(--font-head); font-size:20px; font-weight:800; color:rgba(255,255,255,0.85); }
+    .ccard-back { transform:rotateY(180deg); display:flex; flex-direction:column; justify-content:center; }
+    .ccard-magstrip { position:absolute; top:30px; left:0; right:0; height:44px; background:rgba(0,0,0,0.7); }
+    .ccard-sig-row { position:relative; z-index:2; margin-top:90px; padding:0 20px; display:flex; align-items:center; gap:12px; }
+    .ccard-sig-box { flex:1; background:repeating-linear-gradient(90deg,#e8e8d0 0px,#e8e8d0 6px,#fff 6px,#fff 10px); height:36px; border-radius:4px; }
+    .ccard-cvv-box { background:#fff; color:#111; font-family:'Courier New',monospace; font-size:18px; font-weight:700; letter-spacing:4px; padding:6px 14px; border-radius:6px; white-space:nowrap; }
+    .ccard-back-label { position:relative; z-index:2; text-align:center; margin-top:14px; font-size:9px; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,0.45); }
+    .flip-hint { text-align:center; font-size:11px; color:var(--muted); margin-bottom:18px; }
+
+    /* Debug box */
+    .debug-box { background:rgba(0,229,255,0.06); border:1px solid rgba(0,229,255,0.2); border-radius:10px; padding:10px 14px; font-size:11px; font-family:monospace; color:var(--accent2); margin-bottom:14px; word-break:break-all; line-height:1.8; }
+
+    .txn-list { display:flex; flex-direction:column; gap:10px; }
+    .txn-item { display:flex; align-items:center; gap:14px; background:var(--glass); border:1px solid var(--glass-border); border-radius:14px; padding:14px 18px; backdrop-filter:blur(12px); }
+    .txn-icon { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+    .txn-icon.s { background:rgba(76,255,145,0.12); }
+    .txn-icon.t { background:rgba(0,229,255,0.12); }
+    .txn-info { flex:1; }
+    .txn-desc { font-weight:500; font-size:14px; }
+    .txn-time { font-size:12px; color:var(--muted); }
+    .txn-amount { font-family:var(--font-head); font-size:16px; font-weight:700; }
+    .txn-amount.debit { color:var(--accent3); }
+    .txn-amount.credit { color:#4cff91; }
+    .txn-badge { font-size:11px; padding:3px 9px; border-radius:20px; font-weight:600; }
+    .txn-badge.s { background:rgba(76,255,145,0.15); color:#4cff91; }
+    .txn-badge.t { background:rgba(0,229,255,0.15); color:var(--accent2); }
+
+    #toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(80px); background:rgba(30,27,60,0.95); border:1px solid var(--glass-border); backdrop-filter:blur(20px); padding:14px 24px; border-radius:14px; font-size:14px; z-index:9999; transition:transform .35s cubic-bezier(0.34,1.56,0.64,1),opacity .3s; opacity:0; max-width:90vw; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.4); }
+    #toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+    #toast.success { border-color:#4cff91; color:#4cff91; }
+    #toast.error { border-color:var(--accent3); color:var(--accent3); }
+
+    .empty-state { text-align:center; padding:40px 20px; color:var(--muted); }
+    .empty-icon { font-size:48px; margin-bottom:12px; }
+    .loader { display:inline-block; width:18px; height:18px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+
+    @media(max-width:600px) {
+      .stats-grid { grid-template-columns:1fr 1fr; }
+      .glass-card { padding:28px 20px; }
+      .top-nav { padding:14px 16px; }
+      .nav-links { display:none; }
+    }
+  </style>
+</head>
+<body>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+<div id="toast"></div>
+<div id="app"></div>
+
+<script>
+/* ══════════════════════════════
+   STATE
+══════════════════════════════ */
+const S = {
+  user: null,
+  cards: [],
+  txns: [],
+  page: 'login',
+  section: 'overview',
+  step: 1,
+  newCard: null,
+};
+
+try {
+  const saved = localStorage.getItem('nexacard_user');
+  if (saved) { S.user = JSON.parse(saved); S.page = 'dash'; }
+} catch(e) { localStorage.removeItem('nexacard_user'); }
+
+/* ══════════════════════════════
+   UTILS
+══════════════════════════════ */
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = '', 3500);
+}
+function fmt(n) {
+  return '₹ ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+}
+function fmtNum(num) {
+  const s = clean(num);
+  return (s.match(/.{1,4}/g) || [s]).join(' ');
+}
+function mask(num) {
+  const s = clean(num);
+  return '**** **** **** ' + (s.slice(-4) || '????');
+}
+
+/* ── THE KEY FUNCTION: strips EVERYTHING non-digit ── */
+function clean(num) {
+  return String(num || '').replace(/[^0-9]/g, '');
+}
+
+function go(page) { S.page = page; render(); }
+function nav(section) { S.section = section; render(); }
+
+function setBtn(id, loading, label) {
+  const b = document.getElementById(id);
+  if (!b) return;
+  b.disabled = loading;
+  if (loading) b.innerHTML = '<span class="loader"></span>';
+  else if (label) b.textContent = label;
+}
+
+/* ══════════════════════════════
+   API
+══════════════════════════════ */
+async function api(url, opts = {}) {
+  const res = await fetch(url, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+  });
+  const ct = res.headers.get('content-type') || '';
+  const body = ct.includes('json') ? await res.json() : await res.text();
+  if (!res.ok) {
+    let msg = 'Error ' + res.status;
+    if (typeof body === 'string' && body) msg = body;
+    else if (body && typeof body === 'object') msg = body.message || body.error || JSON.stringify(body);
+    throw new Error(msg);
+  }
+  return body;
+}
+
+async function loadCards() {
+  try {
+    const cards = await api(`/api/cards/user/${S.user.userId}`);
+    S.cards = Array.isArray(cards) ? cards : [];
+    // CRITICAL: normalize every card number to digits-only when storing in state
+    S.cards.forEach(c => { c.cardNumber = clean(c.cardNumber); });
+  } catch { S.cards = []; }
+}
+
+/* ══════════════════════════════
+   RENDER
+══════════════════════════════ */
+function render() {
+  document.getElementById('app').innerHTML = (
+    { login: rLogin, register: rRegister, dash: rDash }[S.page] || rLogin
+  )();
+  bind();
+}
+
+function rLogin() {
+  return `<div class="page active">
+    <div class="glass-card">
+      <div class="brand">Nexa<span>Card</span></div>
+      <p class="tagline">Premium credit card management</p>
+      <p class="page-title">Welcome back</p>
+      <p class="page-sub">Sign in to your account</p>
+      <div class="field"><label>Email</label><input id="l-em" type="email" placeholder="you@example.com"/></div>
+      <div class="field"><label>Password</label><input id="l-pw" type="password" placeholder="••••••••"/></div>
+      <button class="btn btn-primary" id="btn-login">Sign In →</button>
+      <div class="divider">or</div>
+      <p style="text-align:center;font-size:14px;color:var(--muted)">
+        No account? <span class="link" onclick="go('register')">Create one free</span>
+      </p>
+    </div>
+  </div>`;
+}
+
+function rRegister() {
+  return `<div class="page active">
+    <div class="glass-card">
+      <div class="brand">Nexa<span>Card</span></div>
+      <p class="tagline">Premium credit card management</p>
+      <p class="page-title">Create account</p>
+      <p class="page-sub">Join NexaCard in seconds</p>
+      <div class="field"><label>Full Name</label><input id="r-nm" placeholder="Arjun Sharma"/></div>
+      <div class="field"><label>Email</label><input id="r-em" type="email" placeholder="you@example.com"/></div>
+      <div class="field"><label>Password</label><input id="r-pw" type="password" placeholder="••••••••"/></div>
+      <button class="btn btn-primary" id="btn-reg">Create Account →</button>
+      <div class="divider">or</div>
+      <p style="text-align:center;font-size:14px;color:var(--muted)">
+        Already have one? <span class="link" onclick="go('login')">Sign in</span>
+      </p>
+    </div>
+  </div>`;
+}
+
+function rDash() {
+  const init = (S.user?.name || 'U').charAt(0).toUpperCase();
+  const body = { overview: rOverview, cards: rCards, payment: rPayment }[S.section]?.() || rOverview();
+  return `<div class="page active" style="padding:0;align-items:flex-start;">
+    <div class="top-nav">
+      <div class="nav-brand">Nexa<span>Card</span></div>
+      <div class="nav-links">
+        <div class="nav-link ${S.section==='overview'?'active':''}" onclick="nav('overview')">Overview</div>
+        <div class="nav-link ${S.section==='cards'?'active':''}" onclick="nav('cards')">My Cards</div>
+        <div class="nav-link ${S.section==='payment'?'active':''}" onclick="nav('payment')">Pay Now</div>
+      </div>
+      <div class="nav-right">
+        <span class="nav-user">${S.user?.name || ''}</span>
+        <div class="nav-avatar">${init}</div>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">Sign Out</button>
+      </div>
+    </div>
+    <div class="dash-layout">${body}</div>
+  </div>`;
+}
+
+function rOverview() {
+  const totalLimit = S.cards.reduce((a, c) => a + (c.creditLimit || 0), 0);
+  const totalAvail = S.cards.reduce((a, c) => a + (c.availableBalance || 0), 0);
+  const spent = totalLimit - totalAvail;
+  const txnRows = S.txns.length === 0
+    ? `<div class="empty-state"><div class="empty-icon">💸</div><p>No transactions yet. Make a payment!</p></div>`
+    : S.txns.slice().reverse().slice(0,5).map(t => `
+        <div class="txn-item">
+          <div class="txn-icon ${t.type==='topup'?'t':'s'}">${t.type==='topup'?'💰':'✅'}</div>
+          <div class="txn-info">
+            <div class="txn-desc">${t.desc||'Payment'}</div>
+            <div class="txn-time">${t.time||'Just now'} · ${mask(t.cardNum)}</div>
+          </div>
+          <div>
+            <div class="txn-amount ${t.type==='topup'?'credit':'debit'}">${t.type==='topup'?'+':'-'}${fmt(t.amount)}</div>
+            <span class="txn-badge ${t.type==='topup'?'t':'s'}">${t.type==='topup'?'TOP-UP':'SUCCESS'}</span>
+          </div>
+        </div>`).join('');
+  return `
+  <div class="dash-header">
+    <div class="dash-title">Good day, ${S.user?.name?.split(' ')[0]||'User'} !</div>
+    <div class="dash-sub">Financial overview · User ID: <strong style="color:var(--accent2)">${S.user?.userId}</strong></div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Total Credit Limit</div><div class="stat-value cyan">${fmt(totalLimit)}</div></div>
+    <div class="stat-card"><div class="stat-label">Available Balance</div><div class="stat-value green">${fmt(totalAvail)}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Spent</div><div class="stat-value red">${fmt(spent)}</div></div>
+  </div>
+  <div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap;">
+    <button class="btn btn-primary btn-sm" style="width:auto;" onclick="nav('cards')">Add Card</button>
+    <button class="btn btn-cyan btn-sm" style="width:auto;color:#000;" onclick="nav('payment')">Quick Pay</button>
+  </div>
+  <p style="font-family:var(--font-head);font-weight:700;font-size:18px;margin-bottom:14px;">Recent Activity</p>
+  <div class="txn-list">${txnRows}</div>`;
+}
+
+function rCards() {
+  const styles = ['style1','style2','style3'];
+  const cardViews = S.cards.length === 0
+    ? `<div class="empty-state"><div class="empty-icon">💳</div><p>No cards saved yet. Add one below!</p></div>`
+    : S.cards.map((c, i) => `
+      <div class="card-flip-wrapper" id="flip-${i}" onclick="toggleFlip(${i})">
+        <div class="card-flip-inner">
+          <div class="ccard-face ccard-front">
+            <div class="ccard-bg ${styles[i%3]}"></div>
+            <div class="ccard-shine"></div>
+            <div class="ccard-content">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div class="ccard-chip"></div><div class="ccard-logo">NEXA</div>
+              </div>
+              <div class="ccard-number">${fmtNum(c.cardNumber)}</div>
+              <div class="ccard-bottom">
+                <div><div class="ccard-label">Card Holder</div><div class="ccard-value">${S.user?.name||'User'}</div></div>
+                <div><div class="ccard-label">Expires</div><div class="ccard-value">${c.expiryDate||'12/28'}</div></div>
+                <div><div class="ccard-label">Available</div><div class="ccard-value">${fmt(c.availableBalance)}</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="ccard-face ccard-back">
+            <div class="ccard-bg ${styles[i%3]}"></div>
+            <div class="ccard-magstrip"></div>
+            <div class="ccard-sig-row">
+              <div class="ccard-sig-box"></div>
+              <div class="ccard-cvv-box">${c.cvv||'•••'}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+  const step = S.step;
+
+  // Build topup dropdown — value is always clean digits from S.cards (already normalized)
+  const tuOpts = S.cards.length === 0
+    ? '<option value="">— No cards yet —</option>'
+    : S.cards.map(c => {
+        const num = clean(c.cardNumber); // guaranteed digits-only
+        return `<option value="${num}">${fmtNum(num)} · Available: ${fmt(c.availableBalance)}</option>`;
+      }).join('');
+
+  return `
+  <div class="dash-header">
+    <div class="dash-title">My Cards</div>
+    <div class="dash-sub">${S.cards.length} card${S.cards.length!==1?'s':''} in your wallet</div>
+  </div>
+  <div class="card-grid">${cardViews}</div>
+
+  <!-- Add Card Wizard -->
+  <div class="glass-card" style="max-width:420px;margin:28px auto 0;">
+    <p style="font-family:var(--font-head);font-weight:700;font-size:18px;margin-bottom:18px;">
+      ${step===1?'Add New Card':'Confirm Details'}
+    </p>
+    <div class="steps">
+      <div class="step-item ${step>=1?'active':''} ${step>1?'done':''}">
+        <div class="step-dot">${step>1?'✓':'1'}</div><div class="step-label">Card Info</div>
+      </div>
+      <div class="step-item ${step>=2?'active':''}">
+        <div class="step-dot">2</div><div class="step-label">Confirm</div>
+      </div>
+    </div>
+    ${step===1?`
+      <div class="field"><label>Card Number</label><input id="nc-num" placeholder="4111 1111 1111 1111" maxlength="19"/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="field"><label>Expiry</label><input id="nc-exp" placeholder="MM/YY"/></div>
+        <div class="field"><label>CVV</label><input id="nc-cvv" type="password" placeholder="•••" maxlength="4"/></div>
+      </div>
+      <div class="field"><label>Credit Limit (₹)</label><input id="nc-lim" type="number" placeholder="50000"/></div>
+      <button class="btn btn-primary" id="btn-cnext">Next →</button>
+    `:`
+      <div style="background:rgba(255,255,255,0.04);border-radius:14px;padding:18px;margin-bottom:20px;font-size:14px;line-height:2.4;">
+        <div><span style="color:var(--muted)">Card Number:</span> <strong>${fmtNum(S.newCard?.cardNumber)}</strong></div>
+        <div><span style="color:var(--muted)">Expiry:</span> <strong>${S.newCard?.expiryDate}</strong></div>
+        <div><span style="color:var(--muted)">Credit Limit:</span> <strong>${fmt(S.newCard?.creditLimit)}</strong></div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="S.step=1;render()">← Back</button>
+        <button class="btn btn-primary" style="flex:2;" id="btn-csave">Confirm & Save</button>
+      </div>
+    `}
+  </div>
+
+  <!-- Top-Up Panel -->
+  <div class="glass-card" style="max-width:420px;margin:20px auto 0;">
+    <p style="font-family:var(--font-head);font-weight:700;font-size:18px;margin-bottom:6px;">Top-Up Balance</p>
+
+      <div class="field">
+      <label>Select Card</label>
+      <select id="tu-card">${tuOpts}</select>
+    </div>
+    <div class="field">
+      <label>Amount to Add (₹)</label>
+      <input id="tu-amt" type="number" placeholder="e.g. 10000" min="1"/>
+    </div>
+    <div id="tu-debug" style="display:none;" class="debug-box"></div>
+    <button class="btn btn-cyan" id="btn-topup" style="color:#000;">Add Balance →</button>
+  </div>`;
+}
+
+function rPayment() {
+  const opts = S.cards.length === 0
+    ? `<option value="">— Add a card first —</option>`
+    : S.cards.map(c => {
+        const num = clean(c.cardNumber);
+        return `<option value="${num}">${mask(num)} · ₹${Number(c.availableBalance||0).toLocaleString('en-IN')} avail</option>`;
+      }).join('');
+
+  const recentRows = S.txns.filter(t=>t.type!=='topup').length === 0
+    ? `<div class="empty-state" style="padding:20px 0;"><div class="empty-icon" style="font-size:32px;">🧾</div><p style="font-size:13px;">No payments yet</p></div>`
+    : S.txns.filter(t=>t.type!=='topup').slice().reverse().slice(0,4).map(t=>`
+        <div class="txn-item">
+          <div class="txn-icon s" style="width:34px;height:34px;font-size:14px;"></div>
+          <div class="txn-info">
+            <div class="txn-desc" style="font-size:13px;">${t.desc||'Payment'}</div>
+            <div class="txn-time">${t.time||''} · ${mask(t.cardNum)}</div>
+          </div>
+          <div class="txn-amount debit" style="font-size:14px;">-${fmt(t.amount)}</div>
+        </div>`).join('');
+
+  return `
+  <div class="dash-header">
+    <div class="dash-title">Make a Payment</div>
+    <div class="dash-sub">Securely complete your transaction in seconds</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+    <div class="glass-card" style="max-width:100%;">
+      <p style="font-family:var(--font-head);font-weight:700;font-size:18px;margin-bottom:20px;">Pay Now</p>
+      <div class="field"><label>Select Card</label><select id="pay-card">${opts}</select></div>
+      <div class="field"><label>Amount (₹)</label><input id="pay-amt" type="number" placeholder="0.00" min="1"/></div>
+      <div class="field"><label>Description</label><input id="pay-desc" placeholder="e.g. Amazon, Swiggy, Netflix…"/></div>
+      <button class="btn btn-coral" id="btn-pay">Process Payment →</button>
+    </div>
+    <div class="glass-card" style="max-width:100%;">
+      <p style="font-family:var(--font-head);font-weight:600;font-size:14px;margin-bottom:14px;color:var(--muted);">RECENT PAYMENTS</p>
+      <div class="txn-list">${recentRows}</div>
+    </div>
+  </div>`;
+}
+
+function toggleFlip(i) {
+  const el = document.getElementById('flip-' + i);
+  if (el) el.classList.toggle('flipped');
+}
+
+/* ══════════════════════════════
+   BIND HANDLERS
+══════════════════════════════ */
+function bind() {
+
+  /* LOGIN */
+  const bLogin = document.getElementById('btn-login');
+  if (bLogin) bLogin.onclick = async () => {
+    const em = document.getElementById('l-em').value.trim();
+    const pw = document.getElementById('l-pw').value;
+    if (!em || !pw) return toast('Fill all fields', 'error');
+    setBtn('btn-login', true);
+    try {
+      const user = await api('/api/users/login', { method:'POST', body: JSON.stringify({ email:em, password:pw }) });
+      if (!user || !user.userId) throw new Error('Wrong email or password');
+      S.user = user;
+      localStorage.setItem('nexacard_user', JSON.stringify(user));
+      await loadCards();
+      S.page = 'dash'; S.section = 'overview';
+      render();
+      toast(`Welcome back, ${user.name}!`);
+    } catch(e) {
+      toast(e.message || 'Login failed', 'error');
+      setBtn('btn-login', false, 'Sign In →');
+    }
+  };
+
+  /* REGISTER */
+  const bReg = document.getElementById('btn-reg');
+  if (bReg) bReg.onclick = async () => {
+    const name = document.getElementById('r-nm').value.trim();
+    const em   = document.getElementById('r-em').value.trim();
+    const pw   = document.getElementById('r-pw').value;
+    if (!name || !em || !pw) return toast('Fill all fields', 'error');
+    setBtn('btn-reg', true);
+    try {
+      const user = await api('/api/users/register', { method:'POST', body: JSON.stringify({ name, email:em, password:pw }) });
+      S.user = user;
+      localStorage.setItem('nexacard_user', JSON.stringify(user));
+      S.cards = []; S.txns = [];
+      S.page = 'dash'; S.section = 'overview';
+      render();
+      toast(`Account created! Welcome, ${name} 🎉`);
+    } catch(e) {
+      toast('Registration failed. Is the server running?', 'error');
+      setBtn('btn-reg', false, 'Create Account →');
+    }
+  };
+
+  /* CARD NEXT */
+  const bCnext = document.getElementById('btn-cnext');
+  if (bCnext) bCnext.onclick = () => {
+    const num   = clean(document.getElementById('nc-num').value);
+    const exp   = document.getElementById('nc-exp').value.trim();
+    const cvv   = document.getElementById('nc-cvv').value.trim();
+    const limit = parseFloat(document.getElementById('nc-lim').value);
+    if (num.length < 12)     return toast('Enter valid card number', 'error');
+    if (!exp)                return toast('Enter expiry date', 'error');
+    if (cvv.length < 3)      return toast('Enter valid CVV', 'error');
+    if (!limit || limit < 1) return toast('Enter credit limit', 'error');
+    if (S.cards.some(c => clean(c.cardNumber) === num)) return toast('This card is already added', 'error');
+    // Always store clean digits in state
+    S.newCard = { cardNumber: num, expiryDate: exp, cvv, creditLimit: limit, availableBalance: limit };
+    S.step = 2; render();
+  };
+
+  /* ADD CARD */
+  const bCsave = document.getElementById('btn-csave');
+  if (bCsave) bCsave.onclick = async () => {
+    setBtn('btn-csave', true);
+    try {
+      const saved = await api(`/api/cards/add/${S.user.userId}`, { method:'POST', body: JSON.stringify(S.newCard) });
+      // Normalize the returned card number immediately
+      saved.cardNumber = clean(saved.cardNumber);
+      S.cards.push(saved);
+      S.step = 1; S.newCard = null;
+      render();
+      toast('Card saved successfully! 💳');
+    } catch(e) {
+      toast('Failed to save card. Check server.', 'error');
+      setBtn('btn-csave', false, 'Confirm & Save');
+    }
+  };
+
+  /* PAYMENT */
+  const bPay = document.getElementById('btn-pay');
+  if (bPay) bPay.onclick = async () => {
+    const cardNum = document.getElementById('pay-card').value; // already clean from <option value>
+    const amount  = parseFloat(document.getElementById('pay-amt').value);
+    const desc    = document.getElementById('pay-desc').value.trim() || 'Payment';
+    if (!cardNum)             return toast('Select a card first', 'error');
+    if (!amount || amount<=0) return toast('Enter valid amount', 'error');
+    setBtn('btn-pay', true);
+    try {
+      const result = await api(
+        `/api/payments/process?cardNumber=${encodeURIComponent(cardNum)}&amount=${amount}`,
+        { method:'POST' }
+      );
+      if (result === 'Payment Successful') {
+        const card = S.cards.find(c => clean(c.cardNumber) === cardNum);
+        if (card) card.availableBalance = (card.availableBalance||0) - amount;
+        S.txns.push({ cardNum, amount, desc, type:'payment', time: new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) });
+        render();
+        toast('Payment successful!');
+      } else {
+        toast(result, 'error');
+        setBtn('btn-pay', false, 'Process Payment →');
+      }
+    } catch(e) {
+      toast('Payment failed. Check server.', 'error');
+      setBtn('btn-pay', false, 'Process Payment →');
+    }
+  };
+
+  /* ══════════════════════════════
+     TOP-UP — THE FIXED VERSION
+  ══════════════════════════════ */
+  const bTopup = document.getElementById('btn-topup');
+  if (bTopup) bTopup.onclick = async () => {
+    const sel    = document.getElementById('tu-card');
+    const amount = parseFloat(document.getElementById('tu-amt')?.value || '0');
+
+    // Get the value directly from the select — it's already clean digits (set in option value)
+    const rawVal = sel ? sel.value : '';
+
+    // Apply clean() one more time as absolute safety net
+    const num = clean(rawVal);
+
+    // Show debug info on screen
+    const dbg = document.getElementById('tu-debug');
+    if (dbg) {
+      dbg.style.display = 'block';
+      dbg.innerHTML = `Sending cardNumber: <strong>${num}</strong> (${num.length} digits)<br>Amount: ${amount}`;
+    }
+
+    console.log('TOP-UP: sending cardNumber=[' + num + '] length=' + num.length + ' amount=' + amount);
+
+    if (!num)                  return toast('Select a card first', 'error');
+    if (!amount || amount < 1) return toast('Enter a valid top-up amount', 'error');
+
+    setBtn('btn-topup', true);
+    try {
+      const payload = { cardNumber: num, amount: amount };
+      console.log('TOP-UP payload:', JSON.stringify(payload));
+
+      const updated = await api('/api/cards/topup', {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+
+      console.log('TOP-UP response:', JSON.stringify(updated));
+
+      // Normalize the returned card number
+      updated.cardNumber = clean(updated.cardNumber);
+
+      // Update S.cards — match by cardId first, then by number
+      const idx = S.cards.findIndex(c =>
+        c.cardId === updated.cardId ||
+        clean(c.cardNumber) === clean(updated.cardNumber)
+      );
+      if (idx !== -1) {
+        S.cards[idx] = updated;
+      } else {
+        // fallback: reload all cards fresh from server
+        await loadCards();
+      }
+
+      S.txns.push({
+        cardNum: num,
+        amount,
+        desc: 'Balance Top-Up',
+        type: 'topup',
+        time: new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),
+      });
+
+      document.getElementById('tu-amt').value = '';
+      render();
+      toast(`₹${amount.toLocaleString('en-IN')} added successfully!`);
+    } catch(e) {
+      console.error('TOP-UP error:', e);
+      toast(e.message || 'Top-up failed', 'error');
+      setBtn('btn-topup', false, 'Add Balance →');
+    }
+  };
+
+  /* Auto-format card number */
+  const nc = document.getElementById('nc-num');
+  if (nc) nc.addEventListener('input', e => {
+    let v = e.target.value.replace(/\D/g,'').slice(0,16);
+    e.target.value = (v.match(/.{1,4}/g)||[]).join(' ');
+  });
+}
+
+/* ══════════════════════════════
+   LOGOUT
+══════════════════════════════ */
+function logout() {
+  localStorage.removeItem('nexacard_user');
+  Object.assign(S, { user:null, cards:[], txns:[], page:'login', section:'overview', step:1, newCard:null });
+  render();
+  toast('Signed out. See you soon!');
+}
+
+/* INIT */
+if (S.user) {
+  loadCards().then(() => render());
+} else {
+  render();
+}
+</script>
+</body>
+</html>
