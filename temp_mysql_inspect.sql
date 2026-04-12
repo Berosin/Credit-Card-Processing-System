@@ -1,0 +1,1 @@
+USE credit_card_db; SELECT DISTINCT user_user_id FROM card; SELECT user_user_id FROM card WHERE user_user_id NOT IN (SELECT user_id FROM users); SHOW CREATE TABLE user; SHOW CREATE TABLE users; SHOW CREATE TABLE card;

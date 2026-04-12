@@ -13,10 +13,24 @@ public class UserService {
     private UserRepository userRepository;
 
     public User register(User user) {
+        if (user == null) {
+            return null;
+        }
+        if (user.getEmail() != null) {
+            user.setEmail(user.getEmail().trim().toLowerCase());
+        }
+        if (user.getPassword() != null) {
+            user.setPassword(user.getPassword().trim());
+        }
         return userRepository.save(user);
     }
 
     public User login(String email, String password) {
-        return userRepository.findByEmailAndPassword(email, password);
+        if (email == null || password == null) {
+            return null;
+        }
+        String normalizedEmail = email.trim().toLowerCase();
+        String normalizedPassword = password.trim();
+        return userRepository.findFirstByEmailIgnoreCaseAndPassword(normalizedEmail, normalizedPassword);
     }
 }
